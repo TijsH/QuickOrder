@@ -1,0 +1,26 @@
+<a [href]="loginUrl" class="btn btn-primary btn-sm" role="button" aria-pressed="true">Login to Binck.nl</a>
+
+
+<button *ngIf="access.access_token && access.refresh_token"
+        (click)="refreshBinckToken()" type="button" class="btn btn-primary btn-sm">Refresh Binck Token
+</button>
+
+<h6>Binck Access Params:</h6>
+<pre>{{access | json}}</pre>
+
+<h6>Binck Api Version:</h6>
+<pre>{{apiVersion | json}}</pre>
+
+<h6>Binck Accounts:</h6>
+<pre>{{accounts | json}}</pre>
+
+<h6>Binck Trading Account:</h6>
+<pre>{{accountNumber}}</pre>
+
+<div *ngIf="error && error.error && error.error.error">
+  <h5>Error:</h5>
+  <div class="alert alert-danger" role="alert">
+    <pre>{{error | json}}</pre>
+  </div>
+</div>
+

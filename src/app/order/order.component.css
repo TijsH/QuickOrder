@@ -1,0 +1,8 @@
+.instruments-table {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.instruments-table td{
+  padding: 1px;
+}

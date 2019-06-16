@@ -1,0 +1,9 @@
+<h5>Binck Login Params:</h5>
+<pre>{{loginParams | json}}</pre>
+
+<div *ngIf="error && error.error && error.error.error">
+  <h5>Error:</h5>
+  <div class="alert alert-danger" role="alert">
+    <pre>{{error | json}}</pre>
+  </div>
+</div>
