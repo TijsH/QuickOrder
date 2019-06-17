@@ -15,6 +15,8 @@ import {ApiService} from '../api/api.service';
 import {SetAccess} from '../store/access.actions';
 import {SetAccount} from '../store/account.actions';
 import {Router} from '@angular/router';
+import {IQuote} from '../api/quote.model';
+import {INumberToTrack} from '../api/numberToTrack.model';
 
 @Component({
   selector: 'app-order',
@@ -24,6 +26,9 @@ import {Router} from '@angular/router';
 export class OrderComponent implements OnInit, OnDestroy {
   private loginUrl: string;
   private lastTokenRefresh = 0;
+  private lastStreamingTime = '';
+  private lastStreamingTimeClass = '';
+  private lastStreamingTimeClassIntervalId: any;
   private intervalId: any;
   private tokenAge: number;
   private apiVersion: any = {};
@@ -34,8 +39,16 @@ export class OrderComponent implements OnInit, OnDestroy {
   private currentTickSize = 0.0001;
   private currentAddToPrice = 0;
   private currentSubtractFromPrice = 0;
+  private askPrice: INumberToTrack;
+  private bidPrice: INumberToTrack;
   private currentAskPrice = 0;
+  private currentAskPriceClass = '';
+  private currentAskPriceClassIntervalId: any;
+  private currentAskPriceTime = '';
   private currentBidPrice = 0;
+  private currentBidPriceClass = '';
+  private currentBidPriceClassIntervalId: any;
+  private currentBidPriceTime = '';
   private currentAskPriceDecimals = 4;
   private quotes: any = {};
   private instrumentCount = 0;
@@ -46,6 +59,12 @@ export class OrderComponent implements OnInit, OnDestroy {
   private instrumentQuery = new FormControl('');
   private connection: any = {};
   private currentlySubscribedInstrumentId: string;
+  private currentDate = new Date().toISOString().substring(0, 10);
+  private currentDateT = new Date().toISOString().substring(0, 11);
+
+  private buyOrderReferenceId = '';
+  private stopLossOrderReferenceId = '';
+  private sellOrderReferenceId = '';
 
   orderForm = this.formBuilder.group({
     instrumentId: ['',
@@ -221,10 +240,49 @@ export class OrderComponent implements OnInit, OnDestroy {
   instrumentQueryKeyUp($event) {
     if ($event.code === 'Enter') {
       $event.preventDefault();
-      if (this.instrumentQuery.value && this.instrumentQuery.value.length >= 2) {
-        this.onInstrumentQuery(this.instrumentQuery.value);
-      }
+      this.onInstrumentQuery(this.instrumentQuery.value);
     }
+  }
+
+  getTime(date: string): string {
+    return date.replace(this.currentDateT, '');
+  }
+
+
+  flashLastStreamingTime() {
+    this.lastStreamingTimeClass = 'badge badge-primary';
+    clearInterval(this.lastStreamingTimeClassIntervalId);
+    this.lastStreamingTimeClassIntervalId = setInterval(
+      () => {
+        this.lastStreamingTimeClass = 'badge badge-light';
+        clearInterval(this.lastStreamingTimeClassIntervalId);
+      },
+      1000,
+    );
+  }
+
+  flashCurrentAskPrice() {
+    this.currentAskPriceClass = 'badge badge-primary';
+    clearInterval(this.currentAskPriceClassIntervalId);
+    this.currentAskPriceClassIntervalId = setInterval(
+      () => {
+        this.currentAskPriceClass = 'badge badge-light';
+        clearInterval(this.currentAskPriceClassIntervalId);
+      },
+      1000,
+    );
+  }
+
+  flashCurrentBidPrice() {
+    this.currentBidPriceClass = 'badge badge-primary';
+    clearInterval(this.currentBidPriceClassIntervalId);
+    this.currentBidPriceClassIntervalId = setInterval(
+      () => {
+        this.currentBidPriceClass = 'badge badge-light';
+        clearInterval(this.currentBidPriceClassIntervalId);
+      },
+      1000,
+    );
   }
 
   createRealTimeConnection() {
@@ -237,11 +295,33 @@ export class OrderComponent implements OnInit, OnDestroy {
       }
     };
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl('https://realtime.sandbox.binck.com/stream/v1', options)
+      .withUrl('https://realtime.binck.com/stream/v1', options)
       .configureLogging(signalR.LogLevel.Information) // Might be 'Trace' for testing
       .build();
 
-    this.connection.on('Quote', console.log);
+    this.connection.on('Quote', (quote: IQuote) => {
+      console.log('Quote', quote);
+      this.lastStreamingTime = this.getTime(quote.sdt);
+      this.flashLastStreamingTime();
+      if (quote.lvl !== 1) {
+        return;
+      }
+      quote.qt.forEach((qt) => {
+        if (qt.msg === 'qu') {
+          if (qt.typ === 'ask') {
+            this.currentAskPrice = qt.prc;
+            this.currentAskPriceTime = this.getTime(qt.dt);
+            this.updateOrders();
+            this.flashCurrentAskPrice();
+          } else if (qt.typ === 'bid') {
+            this.currentBidPrice = qt.prc;
+            this.currentBidPriceTime = this.getTime(qt.dt);
+            this.updateOrders();
+            this.flashCurrentBidPrice();
+          }
+        }
+      });
+    });
     // this.connection.on('News', console.log);
     // this.connection.on('OrderExecution', console.log);
     // this.connection.on('OrderModified', console.log);
@@ -288,14 +368,15 @@ export class OrderComponent implements OnInit, OnDestroy {
       });
   }
 
-  unsubscribeRealTimeQuotes(instrumentId: string) {
-    if (!instrumentId) {
+  unsubscribeRealTimeQuotes() {
+    if (!this.currentlySubscribedInstrumentId) {
       return;
     }
-    this.connection.invoke('UnSubscribeQuotes', [instrumentId])
+    this.connection.invoke('UnSubscribeQuotes', [this.currentlySubscribedInstrumentId])
       .then((subscriptionResponse) => {
         if (subscriptionResponse.isSucceeded) {
           console.log(`Quote unsubscribe succeeded, number of subscribed instruments is now: ${subscriptionResponse.subcount}`);
+          this.currentlySubscribedInstrumentId = '';
         } else {
           // Internal issue - should never occur
           console.log('Quote unsubscribe failed');
@@ -310,6 +391,7 @@ export class OrderComponent implements OnInit, OnDestroy {
     if (!searchText || searchText.length < 2) {
       return;
     }
+    this.unsubscribeRealTimeQuotes();
     this.instrument = {};
     this.instrumentService.findByName(this.access.access_token, this.accountNumber, searchText)
       .pipe(
@@ -330,7 +412,7 @@ export class OrderComponent implements OnInit, OnDestroy {
   }
 
   onInstrumentTableClick(index: number) {
-    this.unsubscribeRealTimeQuotes(this.currentlySubscribedInstrumentId);
+    this.unsubscribeRealTimeQuotes();
     this.instrument = this.instruments[index];
     this.currentAskPriceDecimals = this.instrument.priceDecimals;
     this.setForm(this.instrument);
@@ -347,10 +429,19 @@ export class OrderComponent implements OnInit, OnDestroy {
         const quote = result.quotesCollection.quotes[0];
         this.currentAskPrice = (quote.last || quote.close || {price: 0}).price;
         this.currentBidPrice = (quote.last || quote.close || {price: 0}).price;
-        this.getCurrentTickSize(this.currentAskPrice);
-        this.setLimitPrice();
-        this.setStopPrice();
+        this.updateOrders();
       });
+  }
+
+  updateOrders() {
+    this.getCurrentTickSize(this.currentAskPrice);
+    this.setLimitPrice();
+    this.setStopPrice();
+  }
+
+  onDeselect() {
+    this.unsubscribeRealTimeQuotes();
+    this.instrument = {};
   }
 
   getCurrentTickSize(price: number) {
@@ -366,8 +457,9 @@ export class OrderComponent implements OnInit, OnDestroy {
   }
 
   setLimitPrice() {
+    const limitPrice = this.getLimitPrice(this.currentAskPrice);
     this.orderForm.patchValue({
-      limitPrice: this.getLimitPrice(this.currentAskPrice),
+      limitPrice,
     });
   }
 
@@ -384,8 +476,9 @@ export class OrderComponent implements OnInit, OnDestroy {
   }
 
   setStopPrice() {
+    const stopPrice = this.getStopPrice(this.currentBidPrice);
     this.orderForm.patchValue({
-      stopPrice: this.getStopPrice(this.currentBidPrice),
+      stopPrice,
     });
   }
 
@@ -420,6 +513,7 @@ export class OrderComponent implements OnInit, OnDestroy {
     }
     const formValues = this.orderForm.getRawValue();
     const newOrder = this.createBuyOrder(formValues.instrumentId, formValues.quantity, formValues.limitPrice);
+    console.log(newOrder);
     this.orderService.validateNewOrder(this.access.access_token, this.accountNumber, newOrder)
       .pipe(
         catchError(error => {
@@ -440,6 +534,7 @@ export class OrderComponent implements OnInit, OnDestroy {
             )
             .subscribe(placeResult => {
               this.placeResult = placeResult;
+              this.buyOrderReferenceId = placeResult.ordersCollection.orders[0].referenceId;
             });
         }
       });
@@ -466,7 +561,8 @@ export class OrderComponent implements OnInit, OnDestroy {
       return;
     }
     const formValues = this.orderForm.getRawValue();
-    const newOrder = this.createStopLossOrder(formValues.instrumentId, formValues.quantity, formValues.limitPrice);
+    const newOrder = this.createStopLossOrder(formValues.instrumentId, formValues.quantity, formValues.stopPrice);
+    console.log(newOrder);
     this.orderService.validateNewOrder(this.access.access_token, this.accountNumber, newOrder)
       .pipe(
         catchError(error => {
@@ -487,6 +583,7 @@ export class OrderComponent implements OnInit, OnDestroy {
             )
             .subscribe(placeResult => {
               this.placeResult = placeResult;
+              this.stopLossOrderReferenceId = placeResult.ordersCollection.orders[0].referenceId;
             });
         }
       });
@@ -514,6 +611,7 @@ export class OrderComponent implements OnInit, OnDestroy {
     }
     const formValues = this.orderForm.getRawValue();
     const newOrder = this.createSellOrder(formValues.instrumentId, formValues.quantity);
+    console.log(newOrder);
     this.orderService.validateNewOrder(this.access.access_token, this.accountNumber, newOrder)
       .pipe(
         catchError(error => {
@@ -534,6 +632,7 @@ export class OrderComponent implements OnInit, OnDestroy {
             )
             .subscribe(placeResult => {
               this.placeResult = placeResult;
+              this.sellOrderReferenceId = placeResult.ordersCollection.orders[0].referenceId;
             });
         }
       });

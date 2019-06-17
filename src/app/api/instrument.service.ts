@@ -10,7 +10,7 @@ export class InstrumentService {
   }
 
   public findByName(accessToken: string, accountNumber: string, searchText: string): Observable<any> {
-    const baseUrl = 'https://api.sandbox.binck.com/api/v1/instruments';
+    const baseUrl = 'https://api.binck.com/api/v1/instruments';
     let params = new HttpParams();
     params = params.set('includeTickSizes', 'true');
     params = params.set('accountNumber', accountNumber);
@@ -30,7 +30,7 @@ export class InstrumentService {
   }
 
   public getQuotes(accessToken: string, accountNumber: string, instrumentId: string): Observable<any> {
-    const baseUrl = 'https://api.sandbox.binck.com/api/v1/quotes';
+    const baseUrl = 'https://api.binck.com/api/v1/quotes';
     let params = new HttpParams();
     params = params.set('accountNumber', accountNumber);
     params = params.set('instrumentIds', instrumentId);

@@ -11,7 +11,7 @@ export class OrderService {
   }
 
   public validateNewOrder(accessToken: string, accountNumber: string, newOrder: INewOrder): Observable<any> {
-    const baseUrl = `https://api.sandbox.binck.com/api/v1/accounts/${accountNumber}/orders/preview`;
+    const baseUrl = `https://api.binck.com/api/v1/accounts/${accountNumber}/orders/preview`;
     const httpOptions = {
       headers: new HttpHeaders({
         'Content-Type': 'application/json; charset=utf-8',
@@ -25,7 +25,7 @@ export class OrderService {
   }
 
   public placeOrder(accessToken: string, accountNumber: string, newOrder: INewOrder): Observable<any> {
-    const baseUrl = `https://api.sandbox.binck.com/api/v1/accounts/${accountNumber}/orders`;
+    const baseUrl = `https://api.binck.com/api/v1/accounts/${accountNumber}/orders`;
     const httpOptions = {
       headers: new HttpHeaders({
         'Content-Type': 'application/json; charset=utf-8',

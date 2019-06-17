@@ -15,7 +15,13 @@
 
 <div class="row">
   <div class="col-4">
-    Binck Trading Account: {{accountNumber}}<br>
+    <small>Date: {{currentDate}}</small>
+    <br>
+    <small>Last streaming time: </small>
+    <span [class]="lastStreamingTimeClass">{{lastStreamingTime}}</span>
+    <br>
+    <small>Binck Trading Account: {{accountNumber}}</small>
+    <br>
     <small>Binck Access Token: {{access.access_token}}</small>
     <br>
     <small>Binck Refresh Token: {{access.refresh_token}}</small>
@@ -33,7 +39,7 @@
 
     <h6>Instrument</h6>
     <div class="form-row align-items-center">
-      <div class="col-auto">
+      <div class="col-4">
         <label class="sr-only" for="instrumentQuery">Name</label>
         <input type="text"
                class="form-control mb-2"
@@ -48,8 +54,13 @@
                 (click)="onInstrumentQuery(instrumentQuery.value)">
           <i class="far fa-search"></i> Search
         </button>
+        <button type="button"
+                class="btn btn-primary mb-2 ml-2"
+                (click)="onDeselect()">
+          <i class="far fa-stop-circle"></i> Stop
+        </button>
       </div>
-      <div class="col-auto">
+      <div class="col">
         {{instrumentCount}}
       </div>
     </div>
@@ -124,9 +135,10 @@
       <div class="form-group row">
         <label for="currentAskPrice" class="col-4 col-form-label col-form-label-sm text-right">currentAskPrice</label>
         <div class="col-4" id="currentAskPrice">
-          {{currentAskPrice}}
+          <span [class]="currentAskPriceClass">{{currentAskPrice}}</span>
         </div>
         <div class="col-4">
+          <small>{{currentAskPriceTime}}</small>
         </div>
       </div>
 
@@ -171,14 +183,16 @@
                 (click)="onSubmitBuyOrder()">
           <i class="far fa-paper-plane"></i> Buy Order Alt+z
         </button>
+        {{buyOrderReferenceId}}
       </div>
 
       <div class="form-group row">
         <label for="currentBidPrice" class="col-4 col-form-label col-form-label-sm text-right">currentBidPrice</label>
         <div class="col-4" id="currentBidPrice">
-          {{currentBidPrice}}
+          <span [class]="currentBidPriceClass">{{currentBidPrice}}</span>
         </div>
         <div class="col-4">
+          <small>{{currentBidPriceTime}}</small>
         </div>
       </div>
 
@@ -224,6 +238,7 @@
                 (click)="onSubmitStopLossOrder()">
           <i class="far fa-paper-plane"></i> Stop loss Order Alt+x
         </button>
+        {{stopLossOrderReferenceId}}
       </div>
 
       <div class="form-group row">
@@ -232,6 +247,7 @@
                 (click)="onSubmitSellOrder()">
           <i class="far fa-paper-plane"></i> Sell Order Alt+c
         </button>
+        {{sellOrderReferenceId}}
       </div>
     </form>
 
