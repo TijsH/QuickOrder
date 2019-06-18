@@ -1,7 +1,9 @@
 import {BrowserModule} from '@angular/platform-browser';
+import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {NgModule} from '@angular/core';
 import {HttpClientModule} from '@angular/common/http';
 import {ReactiveFormsModule} from '@angular/forms';
+import {ToastrModule} from 'ngx-toastr';
 
 import {AppComponent} from './app.component';
 import {AppRoutingModule} from './app-routing.module';
@@ -25,6 +27,7 @@ import {OrderComponent} from './order/order.component';
   ],
   imports: [
     BrowserModule,
+    BrowserAnimationsModule,
     HttpClientModule,
     ReactiveFormsModule,
     AppRoutingModule,
@@ -33,6 +36,11 @@ import {OrderComponent} from './order/order.component';
       maxAge: 10, // Retains last 10 states
       logOnly: environment.production, // Restrict extension to log-only mode
     }),
+    ToastrModule.forRoot({
+      closeButton: true,
+      progressBar: true,
+      timeOut: 3000,
+    })
   ],
   providers: [],
   bootstrap: [AppComponent]

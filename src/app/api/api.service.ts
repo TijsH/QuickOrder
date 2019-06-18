@@ -6,22 +6,26 @@ import {Observable} from 'rxjs';
   providedIn: 'root'
 })
 export class ApiService {
-  state = 'asdgfhjwetrbxcv35761234sdgfh';
+  readonly state = 'asdgfhjwetrbxcv35761234sdgfh';
+  // readonly redirectUrl = encodeURIComponent('http://localhost:4200/binck');
+  readonly redirectUrl = 'http://localhost:4200/binck';
 
   constructor(private http: HttpClient) {
   }
 
   public getLoginUrl(): string {
+    console.log(encodeURIComponent(this.redirectUrl));
+
     const baseUrl = 'https://login.binck.com/am/oauth2/realms/bincknlapi/authorize?';
 
     let params = new HttpParams();
     params = params.set('ui_locales', 'nl');
     params = params.set('client_id', 'IndividualUser_Zartras_hJf4h56fesGhwDwe');
-    params = params.set('scope', 'read quotes news'); // params = params.set('scope', 'read write quotes news');
+    params = params.set('scope', 'read write quotes news');
     params = params.set('state', this.state);
     params = params.set('response_type', 'code');
-    params = params.set('redirect_uri', 'http://localhost/binck');
-    return baseUrl + params.toString();
+    // params = params.set('redirect_uri', this.redirectUrl);
+    return baseUrl + params.toString() + '&redirect_uri=' + this.redirectUrl;
   }
 
   public getAccessToken(authorizationCode: string): Observable<any> {
@@ -35,7 +39,7 @@ export class ApiService {
     params = params.set('grant_type', 'authorization_code');
     params = params.set('client_id', 'IndividualUser_Zartras_hJf4h56fesGhwDwe');
     params = params.set('client_secret', '5HjshhaQcrmpJHfr75f477562fre');
-    params = params.set('redirect_uri', 'http://localhost/binck');
+    params = params.set('redirect_uri', this.redirectUrl);
     params = params.set('code', authorizationCode);
 
     return this.http

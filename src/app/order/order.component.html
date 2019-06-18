@@ -1,4 +1,10 @@
 <div *ngIf="error">
+  <button type="button"
+          class="btn btn-primary"
+          (click)="error = ''">
+    <i class="far fa-paper-plane"></i> Clear
+  </button>
+
   <h5>Error:</h5>
   <div class="alert alert-danger" role="alert">
     <pre>{{error | json}}</pre>
@@ -6,6 +12,12 @@
 </div>
 
 <div *ngIf="message">
+  <button type="button"
+          class="btn btn-primary"
+          (click)="message = ''">
+    <i class="far fa-paper-plane"></i> Clear
+  </button>
+
   <h5>Message:</h5>
   <div class="alert alert-success" role="alert">
     <pre>{{message | json}}</pre>
@@ -17,7 +29,7 @@
   <div class="col-4">
     <small>Date: {{currentDate}}</small>
     <br>
-    <small>Last streaming time: </small>
+    <small>Last streaming time:</small>
     <span [class]="lastStreamingTimeClass">{{lastStreamingTime}}</span>
     <br>
     <small>Binck Trading Account: {{accountNumber}}</small>
@@ -37,231 +49,339 @@
             class="btn btn-primary ml-5">Refresh Token Alt+r
     </button>
 
-    <h6>Instrument</h6>
-    <div class="form-row align-items-center">
-      <div class="col-4">
-        <label class="sr-only" for="instrumentQuery">Name</label>
-        <input type="text"
-               class="form-control mb-2"
-               id="instrumentQuery"
-               placeholder="Instrument..."
-               (keyup)="instrumentQueryKeyUp($event)"
-               [formControl]="instrumentQuery">
-      </div>
-      <div class="col-auto">
-        <button type="button"
-                class="btn btn-primary mb-2"
-                (click)="onInstrumentQuery(instrumentQuery.value)">
-          <i class="far fa-search"></i> Search
-        </button>
-        <button type="button"
-                class="btn btn-primary mb-2 ml-2"
-                (click)="onDeselect()">
-          <i class="far fa-stop-circle"></i> Stop
-        </button>
-      </div>
-      <div class="col">
-        {{instrumentCount}}
-      </div>
-    </div>
-    <table class="table table-sm table-striped table-hover instruments-table">
-      <thead>
-      <tr>
-        <th scope="col">#</th>
-        <th scope="col">id</th>
-        <th scope="col">Symb</th>
-        <th scope="col">Exch</th>
-        <th scope="col">Cur</th>
-        <th scope="col">Type</th>
-        <th scope="col">Name</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr *ngFor="let instr of instruments; let i = index"
-          (click)="onInstrumentTableClick(i)"
-          [class]="instrument.id===instr.id?'table-success':''">
-        <td scope="row">{{i}}</td>
-        <td>{{instr.id}}</td>
-        <td>{{instr.tickerSymbol}}</td>
-        <td>{{instr.marketIdentificationCode}}</td>
-        <td>{{instr.currency}}</td>
-        <td>{{instr.type}}</td>
-        <td>{{instr.name}}</td>
-      </tr>
-      </tbody>
-    </table>
-  </div>
-  <div *ngIf="instrument.id"
-       class="col-4">
-    <h6>Instrument</h6>
-    <pre>{{instrument | json}}</pre>
-    <h6>quotes</h6>
-    <pre>{{quotes | json}}</pre>
-  </div>
-  <div *ngIf="instrument.id"
-       class="col-4">
-    <h5>{{instrument.tickerSymbol}} <span class="float-right">{{instrument.marketIdentificationCode}}</span></h5>
-    <form [formGroup]="orderForm">
-      <div class="form-group row">
-        <label for="instrumentId_" class="col-4 col-form-label col-form-label-sm text-right">instrId*</label>
-
+    <div *ngIf="access.access_token">
+      <h6>Instrument</h6>
+      <div class="form-row align-items-center">
         <div class="col-4">
+          <label class="sr-only" for="instrumentQuery">Name</label>
           <input type="text"
-                 class="form-control form-control-sm"
-                 id="instrumentId_"
-                 name="instrumentId_"
-                 placeholder="..."
-                 formControlName="instrumentId">
+                 class="form-control mb-2"
+                 id="instrumentQuery"
+                 placeholder="Instrument..."
+                 (keyup)="instrumentQueryKeyUp($event)"
+                 [formControl]="instrumentQuery">
+        </div>
+        <div class="col-auto">
+          <button type="button"
+                  class="btn btn-primary mb-2"
+                  (click)="onInstrumentQuery(instrumentQuery.value)">
+            <i class="far fa-search"></i> Search
+          </button>
+          <button type="button"
+                  class="btn btn-primary mb-2 ml-2"
+                  (click)="onDeselect()">
+            <i class="far fa-stop-circle"></i> Stop
+          </button>
+        </div>
+        <div class="col">
+          {{instrumentCount}}
         </div>
       </div>
+      <table class="table table-sm table-striped table-hover instruments-table">
+        <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">id</th>
+          <th scope="col">Symb</th>
+          <th scope="col">Exch</th>
+          <th scope="col">Cur</th>
+          <th scope="col">Type</th>
+          <th scope="col">Name</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let instr of instruments; let i = index"
+            (click)="onInstrumentTableClick(i)"
+            [class]="instrument.id===instr.id?'table-success':''">
+          <td scope="row">{{i}}</td>
+          <td>{{instr.id}}</td>
+          <td>{{instr.tickerSymbol || instr.symbol}}</td>
+          <td>{{instr.marketIdentificationCode}}</td>
+          <td>{{instr.currency}}</td>
+          <td>{{instr.type}}</td>
+          <td>{{instr.name}}</td>
+        </tr>
+        </tbody>
+      </table>
 
-      <div class="form-group row">
-        <label for="quantity" class="col-4 col-form-label col-form-label-sm text-right">quantity*</label>
-
-        <div class="col-4">
-          <input type="number"
-                 class="form-control form-control-sm"
-                 id="quantity"
-                 name="quantity"
-                 step="100"
-                 formControlName="quantity">
-        </div>
-
-        <div class="col-4">
-
-        </div>
-      </div>
-
-      <div class="form-group row">
-        <label for="currentAskPrice" class="col-4 col-form-label col-form-label-sm text-right">currentAskPrice</label>
-        <div class="col-4" id="currentAskPrice">
-          <span [class]="currentAskPriceClass">{{currentAskPrice}}</span>
-        </div>
-        <div class="col-4">
-          <small>{{currentAskPriceTime}}</small>
-        </div>
-      </div>
-
-      <div class="form-group row">
-        <label for="addPercentage" class="col-4 col-form-label col-form-label-sm text-right">add %*</label>
-        <div class="col-4">
-          <input type="number"
-                 class="form-control form-control-sm"
-                 id="addPercentage"
-                 name="addPercentage"
-                 [step]="0.1"
-                 (change)="onAddPercentageChange()"
-                 formControlName="addPercentage">
-        </div>
-
-        <div class="col-4">
-          {{currentAddToPrice}}
-        </div>
-
-      </div>
-
-      <div class="form-group row">
-        <label for="limitPrice" class="col-4 col-form-label col-form-label-sm text-right">limitPrice*</label>
-
-        <div class="col-4">
-          <input type="number"
-                 class="form-control form-control-sm"
-                 id="limitPrice"
-                 name="limitPrice"
-                 [step]="currentTickSize"
-                 formControlName="limitPrice">
-        </div>
-
-        <div class="col-4">
-          {{currentTickSize}} ({{currentAskPriceDecimals}})
-        </div>
-      </div>
-
-      <div class="form-group row">
-        <button type="button"
-                class="btn btn-danger"
-                (click)="onSubmitBuyOrder()">
-          <i class="far fa-paper-plane"></i> Buy Order Alt+z
-        </button>
-        {{buyOrderReferenceId}}
-      </div>
-
-      <div class="form-group row">
-        <label for="currentBidPrice" class="col-4 col-form-label col-form-label-sm text-right">currentBidPrice</label>
-        <div class="col-4" id="currentBidPrice">
-          <span [class]="currentBidPriceClass">{{currentBidPrice}}</span>
-        </div>
-        <div class="col-4">
-          <small>{{currentBidPriceTime}}</small>
-        </div>
-      </div>
-
-      <div class="form-group row">
-        <label for="minusPercentage" class="col-4 col-form-label col-form-label-sm text-right">minus %*</label>
-
-        <div class="col-4">
-          <input type="number"
-                 class="form-control form-control-sm"
-                 id="minusPercentage"
-                 name="minusPercentage"
-                 [step]="0.1"
-                 (change)="onMinusPercentageChange()"
-                 formControlName="minusPercentage">
-        </div>
-
-        <div class="col-4">
-          {{currentSubtractFromPrice}}
-        </div>
-
-      </div>
-
-      <div class="form-group row">
-        <label for="stopPrice" class="col-4 col-form-label col-form-label-sm text-right">stopPrice*</label>
-
-        <div class="col-4">
-          <input type="number"
-                 class="form-control form-control-sm"
-                 id="stopPrice"
-                 name="stopPrice"
-                 [step]="currentTickSize"
-                 formControlName="stopPrice">
-        </div>
-
-        <div class="col-4">
-          {{currentTickSize}} ({{currentAskPriceDecimals}})
-        </div>
-      </div>
-
-      <div class="form-group row">
-        <button type="button"
-                class="btn btn-warning"
-                (click)="onSubmitStopLossOrder()">
-          <i class="far fa-paper-plane"></i> Stop loss Order Alt+x
-        </button>
-        {{stopLossOrderReferenceId}}
-      </div>
-
-      <div class="form-group row">
-        <button type="button"
-                class="btn btn-success"
-                (click)="onSubmitSellOrder()">
-          <i class="far fa-paper-plane"></i> Sell Order Alt+c
-        </button>
-        {{sellOrderReferenceId}}
-      </div>
-    </form>
-
-    <div *ngIf="validateResult">
-      <h5>Message:</h5>
-      <div class="alert alert-success" role="alert">
-        <pre>{{validateResult | json}}</pre>
-      </div>
+      <table class="table table-sm table-striped table-hover instruments-table">
+        <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">number</th>
+          <th scope="col">inst id</th>
+          <th scope="col">Name</th>
+          <th scope="col">Side</th>
+          <th scope="col">Type</th>
+          <th scope="col">Q</th>
+          <th scope="col">Limit</th>
+          <th scope="col">Stop</th>
+          <th scope="col">Status</th>
+          <th scope="col">ExQ</th>
+          <th scope="col">Limit</th>
+          <th scope="col">Avg Price</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let order of orders; let i = index"
+            (click)="onInstrumentTableClick(i)">
+          <td scope="row">{{i}}</td>
+          <td>{{order.number}}</td>
+          <td>{{order.instrument.id}}</td>
+          <td>{{order.instrument.name}}</td>
+          <td>{{order.side}}</td>
+          <td>{{order.type}}</td>
+          <td>{{order.quantity}}</td>
+          <td>{{order.limitPrice}}</td>
+          <td>{{order.stopPrice}}</td>
+          <td>{{order.lastStatus}}</td>
+          <td>{{order.executedQuantity}}</td>
+          <td>{{order.limitPrice}}</td>
+          <td>{{order.averagePrice}}</td>
+        </tr>
+        </tbody>
+      </table>
     </div>
+  </div>
+  <div class="col-4">
+    <div *ngIf="instrument.id">
+      <h6>Instrument</h6>
+      <pre>{{instrument.name}}</pre>
+      <h6>quotes</h6>
+      <pre>{{quoteSubscriptionLevel}}</pre>
+    </div>
+  </div>
+  <div class="col-4">
+    <div *ngIf="instrument.id">
+      <h5>{{instrument.tickerSymbol || instrument.symbol}} <span
+        class="float-right">{{instrument.marketIdentificationCode}}</span></h5>
+      <form [formGroup]="orderForm">
+        <div class="form-group row">
+          <label for="instrumentId_" class="col-4 col-form-label col-form-label-sm text-right">instrId*</label>
 
-    <div *ngIf="placeResult">
-      <h5>Message:</h5>
-      <div class="alert alert-success" role="alert">
-        <pre>{{placeResult | json}}</pre>
+          <div class="col-4">
+            <input type="text"
+                   class="form-control form-control-sm"
+                   id="instrumentId_"
+                   name="instrumentId_"
+                   placeholder="..."
+                   formControlName="instrumentId">
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="quantity" class="col-4 col-form-label col-form-label-sm text-right">quantity*</label>
+
+          <div class="col-4">
+            <input type="number"
+                   class="form-control form-control-sm"
+                   id="quantity"
+                   name="quantity"
+                   step="100"
+                   formControlName="quantity">
+          </div>
+
+          <div class="col-4">
+
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="currentAskPrice" class="col-4 col-form-label col-form-label-sm text-right">currentAskPrice</label>
+          <div class="col-4" id="currentAskPrice">
+            <span [class]="askPrice.getCssClass()">{{askPrice.getValue()}}</span>
+          </div>
+          <div class="col-4">
+            <small>{{askPrice.getLastUpdateTime()}}</small>
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="addPercentage" class="col-4 col-form-label col-form-label-sm text-right">add %*</label>
+          <div class="col-4">
+            <input type="number"
+                   class="form-control form-control-sm"
+                   id="addPercentage"
+                   name="addPercentage"
+                   [step]="0.1"
+                   (change)="onAddPercentageChange()"
+                   formControlName="addPercentage">
+          </div>
+
+          <div class="col-4">
+            {{currentAddToPrice}}
+          </div>
+
+        </div>
+
+        <div class="form-group row">
+          <label for="limitPrice" class="col-4 col-form-label col-form-label-sm text-right">limitPrice*</label>
+
+          <div class="col-4">
+            <input type="number"
+                   class="form-control form-control-sm"
+                   id="limitPrice"
+                   name="limitPrice"
+                   [step]="currentTickSize"
+                   formControlName="limitPrice">
+          </div>
+
+          <div class="col-4">
+            {{currentTickSize}} ({{currentAskPriceDecimals}})
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <div class="col-4">
+            <button type="button"
+                    class="btn btn-block btn-danger"
+                    (click)="onSubmitBuyOrder()">
+              <i class="far fa-paper-plane"></i> Buy Alt+z
+            </button>
+          </div>
+          <div class="col-4">
+            {{buyOrderNumber}}
+          </div>
+          <div class="col-4">
+            <button *ngIf="buyOrderNumber>0"
+                    type="button"
+                    class="btn btn-block btn-warning"
+                    (click)="onSubmitCancelOrder(buyOrderNumber)">
+              <i class="far fa-paper-plane"></i> Cancel
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="currentBidPrice" class="col-4 col-form-label col-form-label-sm text-right">currentBidPrice</label>
+          <div class="col-4" id="currentBidPrice">
+            <span [class]="bidPrice.getCssClass()">{{bidPrice.getValue()}}</span>
+          </div>
+          <div class="col-4">
+            <small>{{bidPrice.getLastUpdateTime()}}</small>
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="minusPercentage" class="col-4 col-form-label col-form-label-sm text-right">minus %*</label>
+
+          <div class="col-4">
+            <input type="number"
+                   class="form-control form-control-sm"
+                   id="minusPercentage"
+                   name="minusPercentage"
+                   [step]="0.1"
+                   (change)="onMinusPercentageChange()"
+                   formControlName="minusPercentage">
+          </div>
+
+          <div class="col-4">
+            {{currentSubtractFromPrice}}
+          </div>
+
+        </div>
+
+        <div class="form-group row">
+          <label for="stopPrice" class="col-4 col-form-label col-form-label-sm text-right">stopPrice*</label>
+
+          <div class="col-4">
+            <input type="number"
+                   class="form-control form-control-sm"
+                   id="stopPrice"
+                   name="stopPrice"
+                   [step]="currentTickSize"
+                   formControlName="stopPrice">
+          </div>
+
+          <div class="col-4">
+            {{currentTickSize}} ({{currentAskPriceDecimals}})
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <div class="col-4">
+            <button type="button"
+                    class="btn btn-block btn-warning"
+                    (click)="onSubmitStopLossOrder()">
+              <i class="far fa-paper-plane"></i> Stop loss Alt+x
+            </button>
+          </div>
+          <div class="col-4">
+            {{stopLossOrderNumber}}
+          </div>
+          <div class="col-4">
+            <button *ngIf="stopLossOrderNumber>0"
+                    type="button"
+                    class="btn btn-block btn-warning"
+                    (click)="onSubmitCancelOrder(stopLossOrderNumber)">
+              <i class="far fa-paper-plane"></i> Cancel
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="priceSpread" class="col-4 col-form-label col-form-label-sm text-right">currentPriceSpread</label>
+          <div class="col-4" id="priceSpread">
+            <span [class]="priceSpread.getCssClass()">{{priceSpread.getValue()}}</span>
+            (<span [class]="priceSpreadPercentage.getCssClass()">{{priceSpreadPercentage.getValue()}}%</span>)
+          </div>
+          <div class="col-4">
+            <small>{{priceSpread.getLastUpdateTime()}}</small>
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <div class="col-4">
+            <button type="button"
+                    class="btn btn-block btn-success"
+                    (click)="onSubmitSellOrder()">
+              <i class="far fa-paper-plane"></i> Sell Alt+c
+            </button>
+          </div>
+          <div class="col-4">
+            {{sellOrderNumber}}
+          </div>
+          <div class="col-4">
+            <button *ngIf="sellOrderNumber>0"
+                    type="button"
+                    class="btn btn-block btn-warning"
+                    (click)="onSubmitCancelOrder(sellOrderNumber)">
+              <i class="far fa-paper-plane"></i> Cancel
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <div class="col-4">
+            <button type="button"
+                    class="btn btn-block btn-warning"
+                    (click)="onSubmitCancelOrder(orderNumberToCancel.value)">
+              <i class="far fa-paper-plane"></i> Cancel
+            </button>
+          </div>
+          <div class="col-4">
+            <input type="text"
+                   class="form-control"
+                   id="orderNumberToCancel"
+                   [formControl]="orderNumberToCancel">
+          </div>
+          <div class="col-4">
+          </div>
+        </div>
+      </form>
+
+      <div *ngIf="validateResult">
+        <h5>Message:</h5>
+        <div class="alert alert-success" role="alert">
+          <pre>{{validateResult | json}}</pre>
+        </div>
+      </div>
+
+      <div *ngIf="placeResult">
+        <h5>Message:</h5>
+        <div class="alert alert-success" role="alert">
+          <pre>{{placeResult | json}}</pre>
+        </div>
       </div>
     </div>
   </div>

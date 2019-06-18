@@ -1,36 +1,22 @@
-export type OrderTypes = 'limit' | 'market' | 'stop' | 'stopLimit';
-export type Durations = 'day' | 'goodTillCancelled' | 'goodTillDate';
-
-export interface INewOrder {
-  type: OrderTypes;
-  quantity: number;
-  duration: Durations;
-  expirationDate?: string;
+export interface IOrder {
+  number: number;
+  instrument: any;
+  type: string;
+  statusHistory: any[];
+  currency: string;
+  duration?: string;
+  line?: number;
+  side?: string;
+  executedQuantity?: number;
   limitPrice?: number;
+  averagePrice?: number;
+  quantity?: number;
+  expirationDate?: string;
+  lastStatus?: string;
   stopPrice?: number;
-  cash?: {
-    side: string;
-    instrumentId: string
-  };
-  srd?: {
-    side: string;
-    instrumentId: string
-  };
-  option?: {
-    condition: string;
-    leg1: {
-      side: string;
-      instrumentId: string
-    };
-    leg2: {
-      side: string;
-      instrumentId: string
-    }
-  };
-  future?: {
-    side: string;
-    instrumentId: string
-  };
-  validationCode?: string;
+  rejectionReason?: string;
+  fixingPrice?: number;
+  rejectionReasonDetail?: string;
+  condition?: string;
   referenceId?: string;
 }
