@@ -15,6 +15,7 @@ export class InstrumentService {
     params = params.set('includeTickSizes', 'true');
     params = params.set('accountNumber', accountNumber);
     params = params.set('instrumentType', 'equity');
+   // params = params.set('instrumentType', 'turbo');
     params = params.set('searchText', searchText);
     params = params.set('range', '0-19');
 

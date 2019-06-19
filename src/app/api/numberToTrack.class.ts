@@ -10,6 +10,7 @@ export class NumberToTrack {
   private previousValue: number;
   private cssClass: string;
   private lastUpdate: string;
+  private lastUpdateCssClass: string;
   private intervalId: any;
 
   constructor(type: string = 'price') {
@@ -17,6 +18,7 @@ export class NumberToTrack {
     this.value = 0;
     this.previousValue = 0;
     this.cssClass = this.CSS_DEFAULT;
+    this.lastUpdateCssClass = this.CSS_DEFAULT;
     this.lastUpdate = '';
     this.intervalId = 0;
   }
@@ -26,6 +28,11 @@ export class NumberToTrack {
     this.value = value;
     this.lastUpdate = lastUpdate;
     this.flash();
+  }
+
+  incValue() {
+    this.value += 1;
+    return this.value;
   }
 
   getValue() {
@@ -40,9 +47,15 @@ export class NumberToTrack {
     return this.lastUpdate;
   }
 
+  getLastUpdateCssClass() {
+    return this.lastUpdateCssClass;
+  }
+
   private flash() {
+    this.lastUpdateCssClass = this.CSS_FLASH_CHANGED;
+
     const sign = Math.sign(this.value - this.previousValue);
-    if (this.type === 'spread') {
+    if (this.type === 'abs') {
       this.setCssClassSpread(sign);
     } else {
       this.setCssClassPrice(sign);
@@ -52,6 +65,7 @@ export class NumberToTrack {
     this.intervalId = setInterval(
       () => {
         this.cssClass = this.CSS_DEFAULT;
+        this.lastUpdateCssClass = this.CSS_DEFAULT;
         clearInterval(this.intervalId);
       },
       1000,

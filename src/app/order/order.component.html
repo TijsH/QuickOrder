@@ -32,7 +32,15 @@
     <small>Last streaming time:</small>
     <span [class]="lastStreamingTimeClass">{{lastStreamingTime}}</span>
     <br>
-    <small>Binck Trading Account: {{accountNumber}}</small>
+    <small>connection.state:</small>
+    <small *ngIf="connection.state!==1" class="badge badge-danger">Disconnected</small>
+    <small *ngIf="connection.state===1" class="badge badge-success">Connected</small>
+    <br>
+    <small>Connection Closed Count:</small>
+    <span [class]="connectionClosedCount.getCssClass()">{{connectionClosedCount.getValue()}}
+      ({{connectionClosedCount.getLastUpdateTime()}})</span>
+    <br>
+    <small>Binck Trading Account: <b>{{accountNumber}}</b></small>
     <br>
     <small>Binck Access Token: {{access.access_token}}</small>
     <br>
@@ -109,6 +117,7 @@
         <tr>
           <th scope="col">#</th>
           <th scope="col">number</th>
+          <th scope="col">Ca</th>
           <th scope="col">inst id</th>
           <th scope="col">Name</th>
           <th scope="col">Side</th>
@@ -127,6 +136,10 @@
             (click)="onInstrumentTableClick(i)">
           <td scope="row">{{i}}</td>
           <td>{{order.number}}</td>
+          <td style="cursor: pointer"
+              (click)="onSubmitCancelOrder(order.number)">
+            <span *ngIf="isCancellable(order)">{{order.number}}</span>
+          </td>
           <td>{{order.instrument.id}}</td>
           <td>{{order.instrument.name}}</td>
           <td>{{order.side}}</td>
@@ -192,7 +205,7 @@
             <span [class]="askPrice.getCssClass()">{{askPrice.getValue()}}</span>
           </div>
           <div class="col-4">
-            <small>{{askPrice.getLastUpdateTime()}}</small>
+            <span [class]="askPrice.getLastUpdateCssClass()">{{askPrice.getLastUpdateTime()}}</span>
           </div>
         </div>
 
@@ -235,8 +248,8 @@
           <div class="col-4">
             <button type="button"
                     class="btn btn-block btn-danger"
-                    (click)="onSubmitBuyOrder()">
-              <i class="far fa-paper-plane"></i> Buy Alt+z
+                    (click)="onSubmitBuyAndStopLossOrder()">
+              Buy + SL
             </button>
           </div>
           <div class="col-4">
@@ -253,12 +266,33 @@
         </div>
 
         <div class="form-group row">
+          <div class="col-4">
+            <button type="button"
+                    class="btn btn-block btn-success"
+                    (click)="onSubmitCancelAndSellOrder()">
+              Cl-SL + Sell
+            </button>
+          </div>
+          <div class="col-4">
+            {{sellOrderNumber}}
+          </div>
+          <div class="col-4">
+            <button *ngIf="sellOrderNumber>0"
+                    type="button"
+                    class="btn btn-block btn-warning"
+                    (click)="onSubmitCancelOrder(sellOrderNumber)">
+              <i class="far fa-paper-plane"></i> Cancel
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group row">
           <label for="currentBidPrice" class="col-4 col-form-label col-form-label-sm text-right">currentBidPrice</label>
           <div class="col-4" id="currentBidPrice">
             <span [class]="bidPrice.getCssClass()">{{bidPrice.getValue()}}</span>
           </div>
           <div class="col-4">
-            <small>{{bidPrice.getLastUpdateTime()}}</small>
+            <span [class]="bidPrice.getLastUpdateCssClass()">{{bidPrice.getLastUpdateTime()}}</span>
           </div>
         </div>
 
@@ -299,11 +333,41 @@
         </div>
 
         <div class="form-group row">
+          <label for="currentBidPrice" class="col-4 col-form-label col-form-label-sm text-right">totalBuy</label>
+          <div class="col-4" id="totalBuy">
+            <span [class]="totalBuy.getCssClass()">{{totalBuy.getValue()}}</span>
+          </div>
+          <div class="col-4">
+            <small>{{totalBuy.getLastUpdateTime()}}</small>
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="currentBidPrice" class="col-4 col-form-label col-form-label-sm text-right">totalSell</label>
+          <div class="col-4" id="totalSell">
+            <span [class]="totalSell.getCssClass()">{{totalSell.getValue()}}</span>
+          </div>
+          <div class="col-4">
+            <small>{{totalSell.getLastUpdateTime()}}</small>
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="currentBidPrice" class="col-4 col-form-label col-form-label-sm text-right">maxLoss</label>
+          <div class="col-4" id="maxLoss">
+            <span [class]="maxLoss.getCssClass()">{{maxLoss.getValue()}}</span>
+          </div>
+          <div class="col-4">
+            <small>{{maxLoss.getLastUpdateTime()}}</small>
+          </div>
+        </div>
+
+        <div class="form-group row">
           <div class="col-4">
             <button type="button"
                     class="btn btn-block btn-warning"
                     (click)="onSubmitStopLossOrder()">
-              <i class="far fa-paper-plane"></i> Stop loss Alt+x
+              SL
             </button>
           </div>
           <div class="col-4">
@@ -327,27 +391,6 @@
           </div>
           <div class="col-4">
             <small>{{priceSpread.getLastUpdateTime()}}</small>
-          </div>
-        </div>
-
-        <div class="form-group row">
-          <div class="col-4">
-            <button type="button"
-                    class="btn btn-block btn-success"
-                    (click)="onSubmitSellOrder()">
-              <i class="far fa-paper-plane"></i> Sell Alt+c
-            </button>
-          </div>
-          <div class="col-4">
-            {{sellOrderNumber}}
-          </div>
-          <div class="col-4">
-            <button *ngIf="sellOrderNumber>0"
-                    type="button"
-                    class="btn btn-block btn-warning"
-                    (click)="onSubmitCancelOrder(sellOrderNumber)">
-              <i class="far fa-paper-plane"></i> Cancel
-            </button>
           </div>
         </div>
 
