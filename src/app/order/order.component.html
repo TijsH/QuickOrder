@@ -24,6 +24,11 @@
   </div>
 </div>
 
+<div (drop)="onDrop($event)"
+     (dragover)="onDragOver($event)"
+     style="width:100px;height:100px;border-style: solid;border-color: green;">
+</div>
+
 
 <div class="row">
   <div class="col-4">
@@ -157,17 +162,20 @@
     </div>
   </div>
   <div class="col-4">
-    <div *ngIf="instrument.id">
+    <div *ngIf="false && instrument.id">
       <h6>Instrument</h6>
-      <pre>{{instrument.name}}</pre>
+      <pre>{{instrument | json}}</pre>
       <h6>quotes</h6>
-      <pre>{{quoteSubscriptionLevel}}</pre>
+      <pre>{{quotes | json}}</pre>
     </div>
   </div>
   <div class="col-4">
     <div *ngIf="instrument.id">
-      <h5>{{instrument.tickerSymbol || instrument.symbol}} <span
-        class="float-right">{{instrument.marketIdentificationCode}}</span></h5>
+      <h5>{{instrument.tickerSymbol || instrument.symbol}} -
+        <small>{{instrument.name}}</small>
+        <span
+          class="float-right">{{instrument.marketIdentificationCode}}</span></h5>
+      <h6>{{quoteSubscriptionLevel}}</h6>
       <form [formGroup]="orderForm">
         <div class="form-group row">
           <label for="instrumentId_" class="col-4 col-form-label col-form-label-sm text-right">instrId*</label>
@@ -179,6 +187,24 @@
                    name="instrumentId_"
                    placeholder="..."
                    formControlName="instrumentId">
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="quantity" class="col-4 col-form-label col-form-label-sm text-right">tickSize*</label>
+
+          <div class="col-4">
+            <input type="number"
+                   class="form-control form-control-sm"
+                   id="tickSize"
+                   name="tickSize"
+                   step="0.005"
+                   (change)="onTickSizeManualChange()"
+                   formControlName="tickSize">
+          </div>
+
+          <div class="col-4">
+            {{currentTickSize}} {{orgTickSize}} ({{currentAskPriceDecimals}})
           </div>
         </div>
 
@@ -240,7 +266,7 @@
           </div>
 
           <div class="col-4">
-            {{currentTickSize}} ({{currentAskPriceDecimals}})
+
           </div>
         </div>
 
@@ -328,7 +354,7 @@
           </div>
 
           <div class="col-4">
-            {{currentTickSize}} ({{currentAskPriceDecimals}})
+
           </div>
         </div>
 

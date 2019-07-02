@@ -2,12 +2,15 @@ import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {INewOrder} from './newOrder.model';
+import {tap} from 'rxjs/operators';
+import {LogService} from './log.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class OrderService {
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient,
+              private logService: LogService) {
   }
 
   public getOrders(accessToken: string, accountNumber: string): Observable<any> {
@@ -47,7 +50,10 @@ export class OrderService {
     };
 
     return this.http
-      .post<any>(baseUrl, newOrder, httpOptions);
+      .post<any>(baseUrl, newOrder, httpOptions)
+      .pipe(
+        tap(value => this.logService.log('placeOrder', JSON.stringify(value)))
+      );
   }
 
   public cancelOrder(accessToken: string, accountNumber: string, orderNumber: number): Observable<any> {
@@ -60,6 +66,9 @@ export class OrderService {
     };
 
     return this.http
-      .delete<any>(baseUrl, httpOptions);
+      .delete<any>(baseUrl, httpOptions)
+      .pipe(
+        tap(value => this.logService.log('cancelOrder', JSON.stringify(value)))
+      );
   }
 }

@@ -18,6 +18,7 @@ import {SetAccount} from '../store/account.actions';
 import {Router} from '@angular/router';
 import {IQuote} from '../api/quote.model';
 import {NumberToTrack} from '../api/numberToTrack.class';
+import {LogService} from '../api/log.service';
 
 
 interface IOrder {
@@ -58,13 +59,13 @@ export class OrderComponent implements OnInit, OnDestroy {
   private connectionClosedCount = new NumberToTrack('abs');
   private intervalId: any;
   private tokenAge: number;
-  private apiVersion: any = {};
   private access: IAccess = {};
   private accountNumber = '';
   private instruments = [];
   private orders: IOrder[] = [];
   private instrument: any = {};
-  private currentTickSize = 0.0001;
+  private orgTickSize = 0;
+  private currentTickSize = 0;
   private currentAddToPrice = 0;
   private currentSubtractFromPrice = 0;
   private askPrice = new NumberToTrack();
@@ -102,6 +103,11 @@ export class OrderComponent implements OnInit, OnDestroy {
         Validators.required
       ]
     ],
+    tickSize: [0,
+      [
+        Validators.required,
+      ]
+    ],
     quantity: [0,
       [
         Validators.required,
@@ -134,6 +140,7 @@ export class OrderComponent implements OnInit, OnDestroy {
               private router: Router,
               private toastr: ToastrService,
               private apiService: ApiService,
+              private logService: LogService,
               private instrumentService: InstrumentService,
               private orderService: OrderService) {
   }
@@ -142,7 +149,6 @@ export class OrderComponent implements OnInit, OnDestroy {
   private ngUnsubscribe = new Subject();
 
   ngOnInit() {
-    console.log('ngOnInit');
     this.loginUrl = this.apiService.getLoginUrl();
 
     this.store
@@ -200,7 +206,7 @@ export class OrderComponent implements OnInit, OnDestroy {
         }
       });
 
-    this.instrumentQuery.setValue('abn');
+    this.instrumentQuery.setValue('');
 
     hotkeys('alt+l,alt+r,alt+z,alt+x,alt+c', (event, handler) => {
       // Prevent the default refresh event under WINDOWS system
@@ -358,6 +364,7 @@ export class OrderComponent implements OnInit, OnDestroy {
   }
 
   quoteNotification(quote: IQuote) {
+    this.logService.log('Quote', JSON.stringify(quote));
     this.lastStreamingTime = this.getTime(quote.sdt);
     this.flashLastStreamingTime();
     if (quote.id !== this.instrument.id) {
@@ -380,10 +387,10 @@ export class OrderComponent implements OnInit, OnDestroy {
   }
 
   orderExecutionNotification(order: any) {
-    console.log('OrderExecution', order);
+    this.logService.log('OrderExecution', JSON.stringify(order));
     this.toastr.info(`${order.number} ${order.status} ${order.avgprc || ''}`, 'OrderExecution');
-    console.log(order.status, 'completelyExecuted', order.number, this.setStopLossOnBuyOrderNumber);
-    if (order.status === 'completelyExecuted' && order.number === this.setStopLossOnBuyOrderNumber) {
+    console.log(order.status, 'OrderExecution', order.number, this.setStopLossOnBuyOrderNumber);
+    if (['completelyExecuted', 'remainderExecuted'].includes(order.status) && order.number === this.setStopLossOnBuyOrderNumber) {
       console.log('YES: this.onSubmitStopLossOrder() setStopLossOnBuyOrderNumber');
       this.onSubmitStopLossOrder();
     }
@@ -391,13 +398,13 @@ export class OrderComponent implements OnInit, OnDestroy {
   }
 
   orderModifiedNotification(order: any) {
-    console.log('OrderModified', order);
+    this.logService.log('OrderModified', JSON.stringify(order));
     this.toastr.info(order, 'OrderModified');
     this.getOrders();
   }
 
   orderStatusNotification(order: any) {
-    console.log('OrderStatus', order);
+    this.logService.log('OrderStatus', JSON.stringify(order));
     this.toastr.info(`${order.number} ${order.status} ${order.limitPrice || ''}`, 'OrderStatus');
     this.getOrders();
 
@@ -525,6 +532,18 @@ export class OrderComponent implements OnInit, OnDestroy {
       });
   }
 
+  onDrop(event: any) {
+    console.log(JSON.stringify(event));
+    console.log(event.dataTransfer.effectAllowed);
+    console.log(event.dataTransfer.types);
+    event.preventDefault();
+  }
+
+  onDragOver(event: any) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
   onInstrumentTableClick(index: number) {
     this.unsubscribeRealTimeQuotes();
     if (index >= this.instruments.length) {
@@ -547,6 +566,7 @@ export class OrderComponent implements OnInit, OnDestroy {
         this.quoteSubscriptionLevel = quote.subscriptionLevel;
         if (quote && quote.ask && quote.ask[0] && quote.ask[0].price) {
           this.askPrice.setValue(quote.ask[0].price, '');
+          this.getCurrentTickSize(quote.ask[0].price);
         } else {
           this.askPrice.setValue(0, '');
         }
@@ -560,7 +580,7 @@ export class OrderComponent implements OnInit, OnDestroy {
   }
 
   updateOrders() {
-    this.getCurrentTickSize(this.askPrice.getValue());
+    // this.getCurrentTickSize(this.askPrice.getValue());
     this.setLimitPrice();
     this.setStopPrice();
     this.setSpread();
@@ -582,6 +602,16 @@ export class OrderComponent implements OnInit, OnDestroy {
       return true;
     });
     this.currentTickSize = size;
+    this.orgTickSize = size;
+    this.orderForm.patchValue({
+      tickSize: size,
+    });
+  }
+
+  onTickSizeManualChange() {
+    const tickSize = this.orderForm.getRawValue().tickSize;
+    this.currentTickSize = tickSize;
+    this.updateOrders();
   }
 
   setMaxLoss() {
@@ -648,10 +678,11 @@ export class OrderComponent implements OnInit, OnDestroy {
   setForm(instrument: any) {
     this.orderForm.setValue({
       instrumentId: instrument.id,
+      tickSize: 0,
       quantity: 100,
-      addPercentage: 0.5,
+      addPercentage: 2.0,
       limitPrice: 0,
-      minusPercentage: 0.5,
+      minusPercentage: 1.0,
       stopPrice: 0,
     });
   }
