@@ -1,16 +1,18 @@
 import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
-import {Observable} from 'rxjs';
+import {EMPTY, Observable} from 'rxjs';
 import {INewOrder} from './newOrder.model';
-import {tap} from 'rxjs/operators';
+import {catchError, tap} from 'rxjs/operators';
 import {LogService} from './log.service';
+import {ToastrService} from 'ngx-toastr';
 
 @Injectable({
   providedIn: 'root'
 })
 export class OrderService {
   constructor(private http: HttpClient,
-              private logService: LogService) {
+              private logService: LogService,
+              private toastr: ToastrService) {
   }
 
   public getOrders(accessToken: string, accountNumber: string): Observable<any> {
@@ -21,8 +23,17 @@ export class OrderService {
         Authorization: `Bearer ${accessToken}`,
       })
     };
+    this.logService.log('Orders', 'getOrders Start', {accountNumber});
     return this.http
-      .get<any>(baseUrl, httpOptions);
+      .get<any>(baseUrl, httpOptions)
+      .pipe(
+        tap(value => this.logService.log('Orders', 'getOrders Result', value)),
+        catchError(error => {
+          this.logService.log('Orders', 'getOrders Error', error);
+          this.toastr.error(error.error.developerMessage, 'Orders - getOrders Error');
+          return EMPTY;
+        })
+      );
   }
 
   public validateNewOrder(accessToken: string, accountNumber: string, newOrder: INewOrder): Observable<any> {
@@ -35,8 +46,17 @@ export class OrderService {
       })
     };
 
+    this.logService.log('Orders', 'validateNewOrder Start', newOrder);
     return this.http
-      .post<any>(baseUrl, newOrder, httpOptions);
+      .post<any>(baseUrl, newOrder, httpOptions)
+      .pipe(
+        tap(value => this.logService.log('Orders', 'validateNewOrder Result', value)),
+        catchError(error => {
+          this.logService.log('Orders', 'validateNewOrder Error', error);
+          this.toastr.error(error.error.developerMessage, 'Orders - validateNewOrder Error');
+          return EMPTY;
+        })
+      );
   }
 
   public placeOrder(accessToken: string, accountNumber: string, newOrder: INewOrder): Observable<any> {
@@ -49,10 +69,16 @@ export class OrderService {
       })
     };
 
+    this.logService.log('Orders', 'placeOrder Start', newOrder);
     return this.http
       .post<any>(baseUrl, newOrder, httpOptions)
       .pipe(
-        tap(value => this.logService.log('placeOrder', JSON.stringify(value)))
+        tap(value => this.logService.log('Orders', 'placeOrder Result', value)),
+        catchError(error => {
+          this.logService.log('Orders', 'placeOrder Error', error);
+          this.toastr.error(error.error.developerMessage, 'Orders - placeOrder Error');
+          return EMPTY;
+        })
       );
   }
 
@@ -65,10 +91,16 @@ export class OrderService {
       })
     };
 
+    this.logService.log('Orders', 'cancelOrder Start', {orderNumber});
     return this.http
       .delete<any>(baseUrl, httpOptions)
       .pipe(
-        tap(value => this.logService.log('cancelOrder', JSON.stringify(value)))
+        tap(value => this.logService.log('Orders', 'cancelOrder Result', value)),
+        catchError(error => {
+          this.logService.log('Orders', 'cancelOrder Error', error);
+          this.toastr.error(error.error.developerMessage, 'Orders - cancelOrder Error');
+          return EMPTY;
+        })
       );
   }
 }

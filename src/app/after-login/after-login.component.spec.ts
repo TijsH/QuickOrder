@@ -1,6 +1,9 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { AfterLoginComponent } from './after-login.component';
+import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+import {HttpClientTestingModule} from '@angular/common/http/testing';
+import {AfterLoginComponent} from './after-login.component';
+import {StoreModule} from '@ngrx/store';
+import {reducers} from '../store/reducers';
+import {RouterModule} from '@angular/router';
 
 describe('AfterLoginComponent', () => {
   let component: AfterLoginComponent;
@@ -8,9 +11,17 @@ describe('AfterLoginComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ AfterLoginComponent ]
+      declarations: [AfterLoginComponent],
+      providers: [
+        //   ActivatedRoute
+      ],
+      imports: [
+        HttpClientTestingModule,
+        RouterModule.forRoot([]),
+        StoreModule.forRoot(reducers)
+      ]
     })
-    .compileComponents();
+      .compileComponents();
   }));
 
   beforeEach(() => {

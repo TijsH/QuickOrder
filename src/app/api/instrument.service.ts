@@ -33,7 +33,7 @@ export class InstrumentService {
     return this.http
       .get<any>(baseUrl, httpOptions)
       .pipe(
-        tap(value => this.logService.log('instrument', JSON.stringify(value)))
+        tap(value => this.logService.log('Instruments', 'instrument', value))
       );
   }
 

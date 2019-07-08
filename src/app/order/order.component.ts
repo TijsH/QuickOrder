@@ -1,6 +1,6 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
 import {FormBuilder, FormControl, Validators} from '@angular/forms';
-import {select, Store} from '@ngrx/store';
+import {Store} from '@ngrx/store';
 import {ToastrService} from 'ngx-toastr';
 import hotkeys from 'hotkeys-js';
 import {IAppState} from '../store/app.state';
@@ -9,7 +9,6 @@ import {InstrumentService} from '../api/instrument.service';
 import {catchError, takeUntil} from 'rxjs/operators';
 import {EMPTY, Subject} from 'rxjs';
 import {Decimal} from 'decimal.js';
-import {INewOrder} from '../api/newOrder.model';
 import {OrderService} from '../api/order.service';
 import * as signalR from '@aspnet/signalr';
 import {ApiService} from '../api/api.service';
@@ -19,6 +18,7 @@ import {Router} from '@angular/router';
 import {IQuote} from '../api/quote.model';
 import {NumberToTrack} from '../api/numberToTrack.class';
 import {LogService} from '../api/log.service';
+import {StrategyService} from '../strategy/strategy.service';
 
 
 interface IOrder {
@@ -62,7 +62,6 @@ export class OrderComponent implements OnInit, OnDestroy {
   private access: IAccess = {};
   private accountNumber = '';
   private instruments = [];
-  private orders: IOrder[] = [];
   private instrument: any = {};
   private orgTickSize = 0;
   private currentTickSize = 0;
@@ -84,18 +83,10 @@ export class OrderComponent implements OnInit, OnDestroy {
   private validateResult: any;
   private placeResult: any;
   private instrumentQuery = new FormControl('');
-  private orderNumberToCancel = new FormControl('');
   private connection: any = {};
   private currentlySubscribedInstrumentId: string;
   private currentDate = new Date().toISOString().substring(0, 10);
   private currentDateT = new Date().toISOString().substring(0, 11);
-
-  private buyOrderNumber = 0;
-  private stopLossOrderNumber = 0;
-  private sellOrderNumber = 0;
-
-  private setStopLossOnBuyOrderNumber = 0;
-  private setSellOrderOnStopLossCancelNumber = 0;
 
   orderForm = this.formBuilder.group({
     instrumentId: ['',
@@ -142,7 +133,8 @@ export class OrderComponent implements OnInit, OnDestroy {
               private apiService: ApiService,
               private logService: LogService,
               private instrumentService: InstrumentService,
-              private orderService: OrderService) {
+              private orderService: OrderService,
+              private strategyService: StrategyService) {
   }
 
   // https://stackoverflow.com/questions/38008334/angular-rxjs-when-should-i-unsubscribe-from-subscription
@@ -164,6 +156,8 @@ export class OrderComponent implements OnInit, OnDestroy {
           this.tokenAge = 0;
         }
         if (access.access_token) {
+          this.access = access;
+          this.strategyService.setAccessToken(this.access.access_token);
           this.apiService
             .getAccounts(access.access_token)
             .pipe(
@@ -177,7 +171,6 @@ export class OrderComponent implements OnInit, OnDestroy {
               this.store.dispatch(new SetAccount({number: accountNumber}));
             });
         }
-        this.access = access;
       });
 
     this.store
@@ -197,12 +190,13 @@ export class OrderComponent implements OnInit, OnDestroy {
           console.log('this.accountNumber === account.number: unchanged, going on to createRealTimeConnection()');
         } else {
           this.accountNumber = account.number;
+          this.strategyService.setAccountNumber(account.number);
           console.log('this.accountNumber return set:', this.accountNumber, account.number);
         }
 
         if (this.accountNumber) {
           this.createRealTimeConnection();
-          this.getOrders();
+          this.strategyService.getOrdersFromBinck2(this.access.access_token, this.accountNumber);
         }
       });
 
@@ -219,13 +213,13 @@ export class OrderComponent implements OnInit, OnDestroy {
           this.refreshBinckToken();
           break;
         case 'alt+z':
-          this.onSubmitBuyOrder();
+          // this.onSubmitBuyOrder();
           break;
         case 'alt+x':
-          this.onSubmitStopLossOrder();
+          // this.onSubmitStopLossOrder();
           break;
         case 'alt+c':
-          this.onSubmitSellOrder();
+          // this.onSubmitSellOrder();
           break;
         default:
           alert(`you pressed ${handler.key}`);
@@ -271,22 +265,6 @@ export class OrderComponent implements OnInit, OnDestroy {
     this.closeRealTimeConnection();
     this.ngUnsubscribe.next();
     this.ngUnsubscribe.complete();
-  }
-
-  getOrders() {
-    console.log('getOrders()');
-    this.orderService
-      .getOrders(this.access.access_token, this.accountNumber)
-      .pipe(
-        catchError(error => {
-          this.error = error;
-          return EMPTY;
-        })
-      )
-      .subscribe(result => {
-        this.orders = result.ordersCollection.orders;
-        console.log(this.orders);
-      });
   }
 
   isCancellable(order: IOrder) {
@@ -343,9 +321,9 @@ export class OrderComponent implements OnInit, OnDestroy {
 
     this.connection.on('Quote', this.quoteNotification.bind(this));
     // this.connection.on('News', console.log);
-    this.connection.on('OrderExecution', this.orderExecutionNotification.bind(this));
-    this.connection.on('OrderModified', this.orderModifiedNotification.bind(this));
-    this.connection.on('OrderStatus', this.orderStatusNotification.bind(this));
+    this.connection.on('OrderExecution', this.strategyService.orderExecutionNotification.bind(this.strategyService));
+    this.connection.on('OrderModified', this.strategyService.orderModifiedNotification.bind(this.strategyService));
+    this.connection.on('OrderStatus', this.strategyService.orderStatusNotification.bind(this.strategyService));
     this.connection.onclose(() => {
       this.connectionClosedCount.incValue();
       console.log('The connection has been closed.');
@@ -364,7 +342,7 @@ export class OrderComponent implements OnInit, OnDestroy {
   }
 
   quoteNotification(quote: IQuote) {
-    this.logService.log('Quote', JSON.stringify(quote));
+    this.logService.log('Quotes', 'Quote', quote);
     this.lastStreamingTime = this.getTime(quote.sdt);
     this.flashLastStreamingTime();
     if (quote.id !== this.instrument.id) {
@@ -384,35 +362,6 @@ export class OrderComponent implements OnInit, OnDestroy {
         }
       }
     });
-  }
-
-  orderExecutionNotification(order: any) {
-    this.logService.log('OrderExecution', JSON.stringify(order));
-    this.toastr.info(`${order.number} ${order.status} ${order.avgprc || ''}`, 'OrderExecution');
-    console.log(order.status, 'OrderExecution', order.number, this.setStopLossOnBuyOrderNumber);
-    if (['completelyExecuted', 'remainderExecuted'].includes(order.status) && order.number === this.setStopLossOnBuyOrderNumber) {
-      console.log('YES: this.onSubmitStopLossOrder() setStopLossOnBuyOrderNumber');
-      this.onSubmitStopLossOrder();
-    }
-    this.getOrders();
-  }
-
-  orderModifiedNotification(order: any) {
-    this.logService.log('OrderModified', JSON.stringify(order));
-    this.toastr.info(order, 'OrderModified');
-    this.getOrders();
-  }
-
-  orderStatusNotification(order: any) {
-    this.logService.log('OrderStatus', JSON.stringify(order));
-    this.toastr.info(`${order.number} ${order.status} ${order.limitPrice || ''}`, 'OrderStatus');
-    this.getOrders();
-
-    if (order.status === 'canceled' && order.number === this.setSellOrderOnStopLossCancelNumber) {
-      console.log('YES: this.onSubmitStopLossOrder() setSellOrderOnStopLossCancelNumber');
-      this.setSellOrderOnStopLossCancelNumber = 0;
-      this.onSubmitSellOrder();
-    }
   }
 
   // this.toastr.info(`${addedPartnerCount++} Partners added`, 'information');
@@ -609,8 +558,7 @@ export class OrderComponent implements OnInit, OnDestroy {
   }
 
   onTickSizeManualChange() {
-    const tickSize = this.orderForm.getRawValue().tickSize;
-    this.currentTickSize = tickSize;
+    this.currentTickSize = this.orderForm.getRawValue().tickSize;
     this.updateOrders();
   }
 
@@ -633,8 +581,8 @@ export class OrderComponent implements OnInit, OnDestroy {
     const spread1 = new Decimal(this.askPrice.getValue() - this.bidPrice.getValue());
     const spread2 = spread1.toDecimalPlaces(this.currentAskPriceDecimals);
     this.priceSpread.setValue(spread2.toNumber(), '');
-    const perc1 = spread2.mul(new Decimal(100)).div(new Decimal(this.askPrice.getValue()));
-    this.priceSpreadPercentage.setValue(perc1.toDecimalPlaces(3).toNumber(), '');
+    const percent1 = spread2.mul(new Decimal(100)).div(new Decimal(this.askPrice.getValue()));
+    this.priceSpreadPercentage.setValue(percent1.toDecimalPlaces(3).toNumber(), '');
   }
 
   setLimitPrice() {
@@ -680,7 +628,7 @@ export class OrderComponent implements OnInit, OnDestroy {
       instrumentId: instrument.id,
       tickSize: 0,
       quantity: 100,
-      addPercentage: 2.0,
+      addPercentage: 1.0,
       limitPrice: 0,
       minusPercentage: 1.0,
       stopPrice: 0,
@@ -688,196 +636,16 @@ export class OrderComponent implements OnInit, OnDestroy {
   }
 
   onSubmitBuyAndStopLossOrder() {
-    this.onSubmitBuyOrder('createStopLossOrder');
-  }
-
-  onSubmitBuyOrder(onSuccess: string = 'NOP') {
-    this.validateResult = undefined;
-    this.placeResult = undefined;
-    this.error = undefined;
-    this.setStopLossOnBuyOrderNumber = 0;
-    if (!this.instrument.id) {
-      return;
-    }
     const formValues = this.orderForm.getRawValue();
-    const newOrder = this.createBuyOrder(formValues.instrumentId, formValues.quantity, formValues.limitPrice);
-    console.log(newOrder);
-    this.orderService.validateNewOrder(this.access.access_token, this.accountNumber, newOrder)
-      .pipe(
-        catchError(error => {
-          this.error = error;
-          return EMPTY;
-        })
-      )
-      .subscribe(validateResult => {
-        this.validateResult = validateResult;
-        if (validateResult.previewOrder.orderCanBeRegistered) {
-          newOrder.validationCode = validateResult.previewOrder.validationCode;
-          this.orderService.placeOrder(this.access.access_token, this.accountNumber, newOrder)
-            .pipe(
-              catchError(error => {
-                this.error = error;
-                return EMPTY;
-              })
-            )
-            .subscribe(placeResult => {
-              this.placeResult = placeResult;
-              this.buyOrderNumber = placeResult.ordersCollection.orders[0].number;
-              this.setStopLossOnBuyOrderNumber = 0;
-              if (onSuccess === 'createStopLossOrder') {
-                this.setStopLossOnBuyOrderNumber = this.buyOrderNumber;
-              }
-            });
-        }
-      });
-  }
-
-  createBuyOrder(instrumentId: string, quantity: number, limitPrice: number): INewOrder {
-    return {
-      type: 'limit',
-      quantity,
-      duration: 'day',
-      limitPrice,
-      cash: {
-        side: 'buy',
-        instrumentId,
-      },
-      referenceId: Date.now().toString(),
-    };
-  }
-
-  onSubmitStopLossOrder() {
-    this.validateResult = undefined;
-    this.placeResult = undefined;
-    this.error = undefined;
-    this.setStopLossOnBuyOrderNumber = 0;
-    if (!this.instrument.id) {
-      return;
-    }
-    const formValues = this.orderForm.getRawValue();
-    const newOrder = this.createStopLossOrder(formValues.instrumentId, formValues.quantity, formValues.stopPrice);
-    console.log(newOrder);
-    this.orderService.validateNewOrder(this.access.access_token, this.accountNumber, newOrder)
-      .pipe(
-        catchError(error => {
-          this.error = error;
-          return EMPTY;
-        })
-      )
-      .subscribe(validateResult => {
-        this.validateResult = validateResult;
-        if (validateResult.previewOrder.orderCanBeRegistered) {
-          newOrder.validationCode = validateResult.previewOrder.validationCode;
-          this.orderService.placeOrder(this.access.access_token, this.accountNumber, newOrder)
-            .pipe(
-              catchError(error => {
-                this.error = error;
-                return EMPTY;
-              })
-            )
-            .subscribe(placeResult => {
-              this.placeResult = placeResult;
-              this.stopLossOrderNumber = placeResult.ordersCollection.orders[0].number;
-            });
-        }
-      });
-  }
-
-  createStopLossOrder(instrumentId: string, quantity: number, stopPrice: number): INewOrder {
-    return {
-      type: 'stop',
-      quantity,
-      duration: 'day',
-      stopPrice,
-      cash: {
-        side: 'sell',
-        instrumentId,
-      },
-      referenceId: Date.now().toString(),
-    };
-  }
-
-  onSubmitCancelOrder(orderNumber: number) {
-    if (!orderNumber) {
-      return;
-    }
-    console.log(`onSubmitCancelOrder ${orderNumber}`);
-
-    this.validateResult = undefined;
-    this.placeResult = undefined;
-    this.error = undefined;
-    this.orderService.cancelOrder(this.access.access_token, this.accountNumber, orderNumber)
-      .pipe(
-        catchError(error => {
-          this.error = error;
-          return EMPTY;
-        })
-      )
-      .subscribe(placeResult => {
-        this.placeResult = placeResult;
-      });
+    this.strategyService.createStrategy(this.access.access_token, this.accountNumber,
+      formValues.instrumentId, formValues.quantity, formValues.limitPrice, formValues.stopPrice);
   }
 
   onSubmitCancelAndSellOrder() {
-    if (this.stopLossOrderNumber > 0) {
-      console.log(`AAAA ${this.stopLossOrderNumber}`);
-      this.setSellOrderOnStopLossCancelNumber = this.stopLossOrderNumber;
-      this.stopLossOrderNumber = 0;
-      this.onSubmitCancelOrder(this.setSellOrderOnStopLossCancelNumber);
-    } else {
-      this.onSubmitSellOrder();
-    }
-
+    this.strategyService.sellStrategy();
   }
 
-  onSubmitSellOrder() {
-    this.validateResult = undefined;
-    this.placeResult = undefined;
-    this.error = undefined;
-    if (!this.instrument.id) {
-      return;
-    }
-
-    this.setSellOrderOnStopLossCancelNumber = 0;
-    const formValues = this.orderForm.getRawValue();
-    const newOrder = this.createSellOrder(formValues.instrumentId, formValues.quantity);
-    console.log(newOrder);
-    this.orderService.validateNewOrder(this.access.access_token, this.accountNumber, newOrder)
-      .pipe(
-        catchError(error => {
-          this.error = error;
-          return EMPTY;
-        })
-      )
-      .subscribe(validateResult => {
-        this.validateResult = validateResult;
-        if (validateResult.previewOrder.orderCanBeRegistered) {
-          newOrder.validationCode = validateResult.previewOrder.validationCode;
-          this.orderService.placeOrder(this.access.access_token, this.accountNumber, newOrder)
-            .pipe(
-              catchError(error => {
-                this.error = error;
-                return EMPTY;
-              })
-            )
-            .subscribe(placeResult => {
-              this.placeResult = placeResult;
-              this.sellOrderNumber = placeResult.ordersCollection.orders[0].number;
-            });
-        }
-      });
-  }
-
-  createSellOrder(instrumentId: string, quantity: number): INewOrder {
-    return {
-      type: 'market',
-      quantity,
-      duration: 'day',
-      cash: {
-        side: 'sell',
-        instrumentId,
-      },
-      referenceId: Date.now().toString(),
-    };
+  onSubmitCancelOrder(orderNumber: number) {
+    this.strategyService.cancelOrderNumber(orderNumber);
   }
 }

@@ -70,6 +70,7 @@
           <input type="text"
                  class="form-control mb-2"
                  id="instrumentQuery"
+                 name="instrumentQuery"
                  placeholder="Instrument..."
                  (keyup)="instrumentQueryKeyUp($event)"
                  [formControl]="instrumentQuery">
@@ -100,6 +101,7 @@
           <th scope="col">Cur</th>
           <th scope="col">Type</th>
           <th scope="col">Name</th>
+          <th scope="col"></th>
         </tr>
         </thead>
         <tbody>
@@ -113,49 +115,7 @@
           <td>{{instr.currency}}</td>
           <td>{{instr.type}}</td>
           <td>{{instr.name}}</td>
-        </tr>
-        </tbody>
-      </table>
-
-      <table class="table table-sm table-striped table-hover instruments-table">
-        <thead>
-        <tr>
-          <th scope="col">#</th>
-          <th scope="col">number</th>
-          <th scope="col">Ca</th>
-          <th scope="col">inst id</th>
-          <th scope="col">Name</th>
-          <th scope="col">Side</th>
-          <th scope="col">Type</th>
-          <th scope="col">Q</th>
-          <th scope="col">Limit</th>
-          <th scope="col">Stop</th>
-          <th scope="col">Status</th>
-          <th scope="col">ExQ</th>
-          <th scope="col">Limit</th>
-          <th scope="col">Avg Price</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr *ngFor="let order of orders; let i = index"
-            (click)="onInstrumentTableClick(i)">
-          <td scope="row">{{i}}</td>
-          <td>{{order.number}}</td>
-          <td style="cursor: pointer"
-              (click)="onSubmitCancelOrder(order.number)">
-            <span *ngIf="isCancellable(order)">{{order.number}}</span>
-          </td>
-          <td>{{order.instrument.id}}</td>
-          <td>{{order.instrument.name}}</td>
-          <td>{{order.side}}</td>
-          <td>{{order.type}}</td>
-          <td>{{order.quantity}}</td>
-          <td>{{order.limitPrice}}</td>
-          <td>{{order.stopPrice}}</td>
-          <td>{{order.lastStatus}}</td>
-          <td>{{order.executedQuantity}}</td>
-          <td>{{order.limitPrice}}</td>
-          <td>{{order.averagePrice}}</td>
+          <td></td>
         </tr>
         </tbody>
       </table>
@@ -279,15 +239,9 @@
             </button>
           </div>
           <div class="col-4">
-            {{buyOrderNumber}}
+            {{strategyService.getStrategy().buy.orderNumber}} + {{strategyService.getStrategy().stopLoss.orderNumber}}
           </div>
           <div class="col-4">
-            <button *ngIf="buyOrderNumber>0"
-                    type="button"
-                    class="btn btn-block btn-warning"
-                    (click)="onSubmitCancelOrder(buyOrderNumber)">
-              <i class="far fa-paper-plane"></i> Cancel
-            </button>
           </div>
         </div>
 
@@ -296,19 +250,13 @@
             <button type="button"
                     class="btn btn-block btn-success"
                     (click)="onSubmitCancelAndSellOrder()">
-              Cl-SL + Sell
+              Cxl SL + Sell
             </button>
           </div>
           <div class="col-4">
-            {{sellOrderNumber}}
+            {{strategyService.getStrategy().sell.orderNumber}}
           </div>
           <div class="col-4">
-            <button *ngIf="sellOrderNumber>0"
-                    type="button"
-                    class="btn btn-block btn-warning"
-                    (click)="onSubmitCancelOrder(sellOrderNumber)">
-              <i class="far fa-paper-plane"></i> Cancel
-            </button>
           </div>
         </div>
 
@@ -389,27 +337,6 @@
         </div>
 
         <div class="form-group row">
-          <div class="col-4">
-            <button type="button"
-                    class="btn btn-block btn-warning"
-                    (click)="onSubmitStopLossOrder()">
-              SL
-            </button>
-          </div>
-          <div class="col-4">
-            {{stopLossOrderNumber}}
-          </div>
-          <div class="col-4">
-            <button *ngIf="stopLossOrderNumber>0"
-                    type="button"
-                    class="btn btn-block btn-warning"
-                    (click)="onSubmitCancelOrder(stopLossOrderNumber)">
-              <i class="far fa-paper-plane"></i> Cancel
-            </button>
-          </div>
-        </div>
-
-        <div class="form-group row">
           <label for="priceSpread" class="col-4 col-form-label col-form-label-sm text-right">currentPriceSpread</label>
           <div class="col-4" id="priceSpread">
             <span [class]="priceSpread.getCssClass()">{{priceSpread.getValue()}}</span>
@@ -417,24 +344,6 @@
           </div>
           <div class="col-4">
             <small>{{priceSpread.getLastUpdateTime()}}</small>
-          </div>
-        </div>
-
-        <div class="form-group row">
-          <div class="col-4">
-            <button type="button"
-                    class="btn btn-block btn-warning"
-                    (click)="onSubmitCancelOrder(orderNumberToCancel.value)">
-              <i class="far fa-paper-plane"></i> Cancel
-            </button>
-          </div>
-          <div class="col-4">
-            <input type="text"
-                   class="form-control"
-                   id="orderNumberToCancel"
-                   [formControl]="orderNumberToCancel">
-          </div>
-          <div class="col-4">
           </div>
         </div>
       </form>
@@ -456,3 +365,56 @@
   </div>
 </div>
 
+
+<div class="row">
+  <div class="col-4">
+    <div *ngIf="access.access_token">
+      <table class="table table-sm table-striped table-hover instruments-table">
+        <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">number</th>
+          <th scope="col">Cxl</th>
+          <th scope="col">inst id</th>
+          <th scope="col">Name</th>
+          <th scope="col">Side</th>
+          <th scope="col">Type</th>
+          <th scope="col">Q</th>
+          <th scope="col">Limit</th>
+          <th scope="col">Stop</th>
+          <th scope="col">Status</th>
+          <th scope="col">ExQ</th>
+          <th scope="col">Limit</th>
+          <th scope="col">Avg Price</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let order of this.strategyService.getOrders(); let i = index"
+            (click)="onInstrumentTableClick(i)">
+          <td scope="row">{{i}}</td>
+          <td>{{order.number}}</td>
+          <td style="cursor: pointer"
+              (click)="onSubmitCancelOrder(order.number)">
+            <span *ngIf="isCancellable(order)">Cxl</span>
+          </td>
+          <td>{{order.instrument.id}}</td>
+          <td>{{order.instrument.name}}</td>
+          <td>{{order.side}}</td>
+          <td>{{order.type}}</td>
+          <td>{{order.quantity}}</td>
+          <td>{{order.limitPrice}}</td>
+          <td>{{order.stopPrice}}</td>
+          <td>{{order.lastStatus}}</td>
+          <td>{{order.executedQuantity}}</td>
+          <td>{{order.limitPrice}}</td>
+          <td>{{order.averagePrice}}</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-4">
+  </div>
+  <div class="col-4">
+  </div>
+</div>

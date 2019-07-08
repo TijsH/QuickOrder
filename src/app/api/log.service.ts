@@ -5,22 +5,22 @@ import {HttpClient, HttpHeaders} from '@angular/common/http';
   providedIn: 'root'
 })
 export class LogService {
+  readonly baseUrl = 'http://localhost:81/log';
+  readonly httpOptions = {
+    headers: new HttpHeaders({
+      'Content-Type': 'application/json; charset=utf-8',
+      Accept: 'application/json; charset=utf-8',
+      Authorization: `Bearer TO_BE_DONE`,
+    })
+  };
+
   constructor(private http: HttpClient) {
   }
 
-  public log(stream: string, message: string) {
-    console.log('public log(message: string): Observable<any>');
-    const baseUrl = 'http://localhost:81/log';
-    const httpOptions = {
-      headers: new HttpHeaders({
-        'Content-Type': 'application/json; charset=utf-8',
-        Accept: 'application/json; charset=utf-8',
-        Authorization: `Bearer TO_BE_DONE`,
-      })
-    };
-
+  public log(logFile: string, action: string, body: object) {
+    const message = JSON.stringify(body);
     return this.http
-      .post<any>(baseUrl, {environment: 'TBD', stream, message}, httpOptions)
+      .post<any>(this.baseUrl, {environment: 'TBD', logFile, action, message}, this.httpOptions)
       .subscribe();
   }
 }

@@ -1,6 +1,8 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { HomeComponent } from './home.component';
+import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+import {HttpClientTestingModule} from '@angular/common/http/testing';
+import {StoreModule} from '@ngrx/store';
+import {HomeComponent} from './home.component';
+import {reducers} from '../store/reducers';
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
@@ -8,9 +10,13 @@ describe('HomeComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ HomeComponent ]
+      declarations: [HomeComponent],
+      imports: [
+        HttpClientTestingModule,
+        StoreModule.forRoot(reducers)
+      ]
     })
-    .compileComponents();
+      .compileComponents();
   }));
 
   beforeEach(() => {
