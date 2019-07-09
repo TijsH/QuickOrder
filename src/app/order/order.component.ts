@@ -88,6 +88,8 @@ export class OrderComponent implements OnInit, OnDestroy {
   private currentDate = new Date().toISOString().substring(0, 10);
   private currentDateT = new Date().toISOString().substring(0, 11);
 
+  private readonly maxBinckTokenAge = 29 * 60; // just before 30 minutes.
+
   orderForm = this.formBuilder.group({
     instrumentId: ['',
       [
@@ -196,7 +198,6 @@ export class OrderComponent implements OnInit, OnDestroy {
 
         if (this.accountNumber) {
           this.createRealTimeConnection();
-          this.strategyService.getOrdersFromBinck2(this.access.access_token, this.accountNumber);
         }
       });
 
@@ -239,7 +240,7 @@ export class OrderComponent implements OnInit, OnDestroy {
     if (this.lastTokenRefresh !== 0) {
       const newTokenAge = Math.round((Date.now() - this.lastTokenRefresh) / 1000);
 
-      if (newTokenAge > 300) {
+      if (newTokenAge > this.maxBinckTokenAge) {
         this.refreshBinckToken();
       } else {
         this.tokenAge = newTokenAge;

@@ -165,12 +165,8 @@ export class StrategyService {
   }
 
   getOrdersFromBinck() {
-    this.getOrdersFromBinck2(this.accessToken, this.accountNumber);
-  }
-
-  getOrdersFromBinck2(accessToken: string, accountNumber: string) {
     this.orderService
-      .getOrders(accessToken, accountNumber)
+      .getOrders(this.accessToken, this.accountNumber)
       .subscribe(result => {
         this.orders = result.ordersCollection.orders;
       });
