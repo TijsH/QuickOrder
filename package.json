@@ -26,7 +26,7 @@
     "bootstrap": "^4.3.1",
     "decimal.js": "^10.2.0",
     "hotkeys-js": "^3.6.11",
-    "luxon": "^1.16.1",
+    "luxon": "^2.5.2",
     "ngx-toastr": "^10.0.4",
     "rxjs": "~6.4.0",
     "tslib": "^1.9.0",
